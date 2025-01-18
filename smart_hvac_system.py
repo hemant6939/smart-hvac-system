@@ -152,13 +152,13 @@ if weather_source == "Real-time Weather Data":
 
             # Set the correct image based on the temperature
             if temp < 15:
-                weather_image_path = "images/cold_weather.png"
+                weather_image_path = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images/cold_weather.png"
             elif temp > 30:
-                weather_image_path = "images/hot_weather.png"
+                weather_image_path = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images/hot_weather.png"
             elif 15 <= temp <= 20 or 26 <= temp <= 30:
-                weather_image_path = "images/mild_weather.png"
+                weather_image_path = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images/mild_weather.png"
             else:
-                weather_image_path = "images/energy_saving_weather.png"
+                weather_image_path = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images/energy_saving_weather.png"
 
             # Load the weather image
             try:
