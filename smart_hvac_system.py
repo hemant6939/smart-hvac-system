@@ -101,11 +101,21 @@ st.sidebar.header("Room Occupancy")
 simulate_occupancy = st.sidebar.checkbox("Simulate Random Occupancy", value=False)
 manual_override = st.sidebar.checkbox("Override Occupancy Manually", value=False)
 
+# When Override Occupancy is checked, uncheck Simulate Random Occupancy
 if manual_override:
     simulate_occupancy = False
+
+# Conditionally hide checkboxes based on the state of the other checkbox
+if manual_override:
     is_room_occupied = st.sidebar.checkbox("Room is Occupied", value=True)
+    room_status = "Room Occupied" if is_room_occupied else "Room Unoccupied"
+    st.sidebar.write(f"Override: {room_status}")
+elif simulate_occupancy:
+    manual_override = False
+    st.session_state.random_occupancy = random.choice([True, False])
+    is_room_occupied = st.session_state.random_occupancy
 else:
-    is_room_occupied = random.choice([True, False]) if simulate_occupancy else st.sidebar.checkbox("Room is Occupied", value=True)
+    is_room_occupied = st.sidebar.checkbox("Room is Occupied", value=True)
 
 # Apply Best Settings
 if st.sidebar.button("Apply Best Settings"):
@@ -123,7 +133,7 @@ weather_source = st.radio(
 )
 
 # Path for images directory
-image_dir = "images"  # Use relative path for images
+image_dir = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images"  # Update this path as per your local or cloud directory
 
 def get_weather_image(temp):
     if temp < 15:
@@ -133,12 +143,13 @@ def get_weather_image(temp):
     elif 15 <= temp <= 20 or 26 <= temp <= 30:
         weather_image_path = os.path.join(image_dir, "mild_weather.png")
     else:
-        weather_image_path = os.path.join(image_dir, "energy_saving.png")
+        weather_image_path = os.path.join(image_dir, "energy_saving.png")  # Updated to 'energy_saving.png'
 
     try:
-        return Image.open(weather_image_path)
+        weather_image = Image.open(weather_image_path)
+        return weather_image
     except FileNotFoundError:
-        st.error(f"Image {weather_image_path} not found. Please ensure the images folder is properly set up.")
+        st.error(f"Image {weather_image_path} not found. Please check your image paths.")
         return None
 
 if weather_source == "Real-time Weather Data":
@@ -155,21 +166,77 @@ if weather_source == "Real-time Weather Data":
                 temp, humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
             )
 
+            # Get weather image based on the temperature
             weather_image = get_weather_image(temp)
 
             st.success(f"Temperature: {temp}°C | Humidity: {humidity}% | Season: {season} | AQI: {aqi}")
             st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
 
-            # Display the image and statuses
-            col1, col2 = st.columns([2, 1])
+            # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier) and Weather Image in Two Columns
+            col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
+
             with col1:
                 st.subheader("Devices")
-                st.markdown(f"**AC**: {'ON' if ac_status == 'ON' else 'OFF'}")
-                st.markdown(f"**Humidifier**: {'ON' if humidifier_status == 'ON' else 'OFF'}")
+                # Display device statuses with color only for ON/OFF
+                ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
+                st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
+
+                humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
+                st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
+
+                dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
+                st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
+
+                air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
+                st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
+
             with col2:
                 if weather_image:
-                    st.image(weather_image)
+                    st.image(weather_image, use_container_width=True)
+                else:
+                    st.warning("Could not load weather image.")
+
 else:
-    manual_temp = st.number_input("Enter outdoor temperature:", -50, 50, value=25)
+    # Manual Input for Weather Data
+    st.header("Enter Weather Data Manually")
+    manual_temp = st.number_input("Enter the outdoor temperature (°C)", min_value=-50, max_value=50, value=22)
+    manual_humidity = st.number_input("Enter the outdoor humidity (%)", min_value=0, max_value=100, value=50)
+    manual_aqi = st.number_input("Enter the AQI", min_value=0, max_value=500, value=75)  # AQI input field added
+    
     season = determine_season(manual_temp)
-    st.write(f"Season: {season}")
+    aqi = manual_aqi  # Manual input now uses the entered AQI value
+
+    ac_status, humidifier_status, dehumidifier_status, air_purifier_status = determine_actions(
+        manual_temp, manual_humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
+    )
+
+    # Get weather image based on the temperature
+    weather_image = get_weather_image(manual_temp)
+
+    # Show the results based on manual input
+    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {manual_aqi} | Season: {season}")
+    st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
+
+    # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier) for Manual Input
+    col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
+
+    with col1:
+        st.subheader("Devices")
+        # Display device statuses with color only for ON/OFF
+        ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
+        st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
+
+        humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
+        st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
+
+        dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
+        st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
+
+        air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
+        st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
+
+    with col2:
+        if weather_image:
+            st.image(weather_image, use_container_width=True)
+        else:
+            st.warning("Could not load weather image.")
