@@ -152,13 +152,20 @@ if weather_source == "Real-time Weather Data":
 
             # Set the correct image based on the temperature
             if temp < 15:
-                weather_image = "/Users/hemantchaudhary/Desktop/cold_weather.png"
+                weather_image = "images/cold_weather.png"
             elif temp > 30:
-                weather_image = "/Users/hemantchaudhary/Desktop/hot_weather.png"
+                weather_image = "images/hot_weather.png"
             elif 15 <= temp <= 20 or 26 <= temp <= 30:
-                weather_image = "/Users/hemantchaudhary/Desktop/mild_weather.png"
+                weather_image = "images/mild_weather.png"
             else:
-                weather_image = "/Users/hemantchaudhary/Desktop/energy_saving_weather.png"
+                weather_image = "images/energy_saving_weather.png"
+
+            # Load the weather image
+            try:
+                weather_image = Image.open(weather_image)
+            except FileNotFoundError:
+                st.error(f"Image {weather_image} not found. Please check your image paths.")
+                weather_image = None  # Prevent further errors if the image doesn't load
 
             st.success(f"Temperature: {temp}°C | Humidity: {humidity}% | Season: {season} | AQI: {aqi}")
             st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
@@ -183,7 +190,10 @@ if weather_source == "Real-time Weather Data":
 
             with col2:
                 # Display image of weather condition
-                st.image(weather_image, use_container_width=True)
+                if weather_image:
+                    st.image(weather_image, use_container_width=True)
+                else:
+                    st.warning("Could not load weather image.")
 
 else:
     st.warning("Invalid weather source selected.")
