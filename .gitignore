@@ -172,3 +172,10 @@ cython_debug/
 
 # macOS system file
 .DS_Store
+
+# Ignore image files
+images/*.png
+
+# Ignore environment variables file
+.env
+
