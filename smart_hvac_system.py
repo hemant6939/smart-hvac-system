@@ -201,9 +201,10 @@ else:
     st.header("Enter Weather Data Manually")
     manual_temp = st.number_input("Enter the outdoor temperature (°C)", min_value=-50, max_value=50, value=22)
     manual_humidity = st.number_input("Enter the outdoor humidity (%)", min_value=0, max_value=100, value=50)
+    manual_aqi = st.number_input("Enter the AQI", min_value=0, max_value=500, value=75)  # AQI input field added
     
     season = determine_season(manual_temp)
-    aqi = None  # Manual input doesn't provide AQI data, so it's set to None for now
+    aqi = manual_aqi  # Manual input now uses the entered AQI value
 
     ac_status, humidifier_status, dehumidifier_status, air_purifier_status = determine_actions(
         manual_temp, manual_humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
@@ -213,7 +214,7 @@ else:
     weather_image = get_weather_image(manual_temp)
 
     # Show the results based on manual input
-    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | Season: {season}")
+    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {manual_aqi} | Season: {season}")
     st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
 
     # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier) for Manual Input
@@ -238,4 +239,4 @@ else:
         if weather_image:
             st.image(weather_image, use_container_width=True)
         else:
-            st.warning("No weather image available for manual input.")
+            st.warning("Could not load weather image.")
