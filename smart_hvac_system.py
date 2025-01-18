@@ -152,19 +152,19 @@ if weather_source == "Real-time Weather Data":
 
             # Set the correct image based on the temperature
             if temp < 15:
-                weather_image = "images/cold_weather.png"
+                weather_image_path = "images/cold_weather.png"
             elif temp > 30:
-                weather_image = "images/hot_weather.png"
+                weather_image_path = "images/hot_weather.png"
             elif 15 <= temp <= 20 or 26 <= temp <= 30:
-                weather_image = "images/mild_weather.png"
+                weather_image_path = "images/mild_weather.png"
             else:
-                weather_image = "images/energy_saving_weather.png"
+                weather_image_path = "images/energy_saving_weather.png"
 
             # Load the weather image
             try:
-                weather_image = Image.open(weather_image)
+                weather_image = Image.open(weather_image_path)
             except FileNotFoundError:
-                st.error(f"Image {weather_image} not found. Please check your image paths.")
+                st.error(f"Image {weather_image_path} not found. Please check your image paths.")
                 weather_image = None  # Prevent further errors if the image doesn't load
 
             st.success(f"Temperature: {temp}°C | Humidity: {humidity}% | Season: {season} | AQI: {aqi}")
