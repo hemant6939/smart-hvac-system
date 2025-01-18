@@ -133,17 +133,17 @@ weather_source = st.radio(
 )
 
 # Path for images directory
-image_dir = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images"  # Update this path as per your local or cloud directory
+image_dir = "images"  # Update this path as per your local or cloud directory
 
 def get_weather_image(temp):
     if temp < 15:
-        weather_image_path = os.path.join(image_dir, "cold_weather.png")
+        cold_weather_image_path = os.path.join(image_dir, "cold_weather.png")
     elif temp > 30:
-        weather_image_path = os.path.join(image_dir, "hot_weather.png")
+        hot_weather_image_path = os.path.join(image_dir, "hot_weather.png")
     elif 15 <= temp <= 20 or 26 <= temp <= 30:
-        weather_image_path = os.path.join(image_dir, "mild_weather.png")
+        mild_weather_image_path = os.path.join(image_dir, "mild_weather.png")
     else:
-        weather_image_path = os.path.join(image_dir, "energy_saving.png")  # Updated to 'energy_saving.png'
+        energy_saving_image_path = os.path.join(image_dir, "energy_saving.png")  # Updated to 'energy_saving.png'
 
     try:
         weather_image = Image.open(weather_image_path)
