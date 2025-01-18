@@ -1,13 +1,9 @@
-# Import required libraries
 from dotenv import load_dotenv  # To load variables from the env file
 import os  # To access the environment variables
 import requests
 import streamlit as st
 import random
-import time
 from PIL import Image
-from io import BytesIO
-import base64
 
 # Load environment variables from the '.env' file
 load_dotenv()  # Automatically looks for .env in the project root directory
@@ -136,6 +132,26 @@ weather_source = st.radio(
     ("Real-time Weather Data", "Manual Input")
 )
 
+# Path for images directory
+image_dir = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images"  # Update this path as per your local or cloud directory
+
+def get_weather_image(temp):
+    if temp < 15:
+        weather_image_path = os.path.join(image_dir, "cold_weather.png")
+    elif temp > 30:
+        weather_image_path = os.path.join(image_dir, "hot_weather.png")
+    elif 15 <= temp <= 20 or 26 <= temp <= 30:
+        weather_image_path = os.path.join(image_dir, "mild_weather.png")
+    else:
+        weather_image_path = os.path.join(image_dir, "energy_saving.png")  # Updated to 'energy_saving.png'
+
+    try:
+        weather_image = Image.open(weather_image_path)
+        return weather_image
+    except FileNotFoundError:
+        st.error(f"Image {weather_image_path} not found. Please check your image paths.")
+        return None
+
 if weather_source == "Real-time Weather Data":
     city = st.text_input("Enter your city", DEFAULT_CITY)
     country = st.text_input("Enter your country code (e.g., 'US', 'UK')", DEFAULT_COUNTRY)
@@ -150,22 +166,8 @@ if weather_source == "Real-time Weather Data":
                 temp, humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
             )
 
-            # Set the correct image based on the temperature
-            if temp < 15:
-                weather_image_path = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images/cold_weather.png"
-            elif temp > 30:
-                weather_image_path = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images/hot_weather.png"
-            elif 15 <= temp <= 20 or 26 <= temp <= 30:
-                weather_image_path = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images/mild_weather.png"
-            else:
-                weather_image_path = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images/energy_saving_weather.png"
-
-            # Load the weather image
-            try:
-                weather_image = Image.open(weather_image_path)
-            except FileNotFoundError:
-                st.error(f"Image {weather_image_path} not found. Please check your image paths.")
-                weather_image = None  # Prevent further errors if the image doesn't load
+            # Get weather image based on the temperature
+            weather_image = get_weather_image(temp)
 
             st.success(f"Temperature: {temp}°C | Humidity: {humidity}% | Season: {season} | AQI: {aqi}")
             st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
@@ -189,11 +191,51 @@ if weather_source == "Real-time Weather Data":
                 st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
 
             with col2:
-                # Display image of weather condition
                 if weather_image:
                     st.image(weather_image, use_container_width=True)
                 else:
                     st.warning("Could not load weather image.")
 
 else:
-    st.warning("Invalid weather source selected.")
+    # Manual Input for Weather Data
+    st.header("Enter Weather Data Manually")
+    manual_temp = st.number_input("Enter the outdoor temperature (°C)", min_value=-50, max_value=50, value=22)
+    manual_humidity = st.number_input("Enter the outdoor humidity (%)", min_value=0, max_value=100, value=50)
+    
+    season = determine_season(manual_temp)
+    aqi = None  # Manual input doesn't provide AQI data, so it's set to None for now
+
+    ac_status, humidifier_status, dehumidifier_status, air_purifier_status = determine_actions(
+        manual_temp, manual_humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
+    )
+
+    # Get weather image based on the temperature
+    weather_image = get_weather_image(manual_temp)
+
+    # Show the results based on manual input
+    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | Season: {season}")
+    st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
+
+    # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier) for Manual Input
+    col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
+
+    with col1:
+        st.subheader("Devices")
+        # Display device statuses with color only for ON/OFF
+        ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
+        st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
+
+        humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
+        st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
+
+        dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
+        st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
+
+        air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
+        st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
+
+    with col2:
+        if weather_image:
+            st.image(weather_image, use_container_width=True)
+        else:
+            st.warning("No weather image available for manual input.")
