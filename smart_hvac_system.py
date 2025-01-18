@@ -240,3 +240,31 @@ else:
             st.image(weather_image, use_container_width=True)
         else:
             st.warning("Could not load weather image.")
+
+# Ensure the image directory path is absolute
+image_dir = os.path.abspath("images")
+print("Resolved Image Directory Path:", image_dir)
+
+def get_weather_image(temp):
+    # Determine the correct image based on temperature
+    if temp < 15:
+        weather_image_path = os.path.join(image_dir, "cold_weather.png")
+    elif temp > 30:
+        weather_image_path = os.path.join(image_dir, "hot_weather.png")
+    elif 15 <= temp <= 20 or 26 <= temp <= 30:
+        weather_image_path = os.path.join(image_dir, "mild_weather.png")
+    else:
+        weather_image_path = os.path.join(image_dir, "energy_saving.png")
+
+    # Debug: Print the resolved path
+    print("Resolved Weather Image Path:", weather_image_path)
+
+    try:
+        # Try loading the image
+        weather_image = Image.open(weather_image_path)
+        return weather_image
+    except FileNotFoundError:
+        # Log the error with the full path
+        st.error(f"Image {weather_image_path} not found. Please check your image paths.")
+        return None
+
