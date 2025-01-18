@@ -133,7 +133,13 @@ weather_source = st.radio(
 )
 
 # Path for images directory
+import os
+from PIL import Image
+import streamlit as st
+
+# Ensure the image directory path is absolute
 image_dir = os.path.abspath("images")
+st.write(f"Resolved Image Directory Path: {image_dir}")  # Display resolved path in the Streamlit app
 
 def get_weather_image(temp):
     if temp < 15:
@@ -143,7 +149,10 @@ def get_weather_image(temp):
     elif 15 <= temp <= 20 or 26 <= temp <= 30:
         weather_image_path = os.path.join(image_dir, "mild_weather.png")
     else:
-        weather_image_path = os.path.join(image_dir, "energy_saving.png")  # Updated to 'energy_saving.png'
+        weather_image_path = os.path.join(image_dir, "energy_saving.png")
+
+    # Debug: Print the resolved path
+    st.write(f"Resolved Weather Image Path: {weather_image_path}")
 
     try:
         weather_image = Image.open(weather_image_path)
@@ -151,6 +160,7 @@ def get_weather_image(temp):
     except FileNotFoundError:
         st.error(f"Image {weather_image_path} not found. Please check your image paths.")
         return None
+
 
 if weather_source == "Real-time Weather Data":
     city = st.text_input("Enter your city", DEFAULT_CITY)
