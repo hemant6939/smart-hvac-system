@@ -133,7 +133,8 @@ weather_source = st.radio(
 )
 
 # Path for images directory
-image_dir = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images"  # Update this path as per your local or cloud directory
+image_dir = os.path.abspath("images")
+print("Resolved Image Directory Path:", image_dir)
 
 def get_weather_image(temp):
     if temp < 15:
