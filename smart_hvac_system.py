@@ -9,15 +9,15 @@ from PIL import Image
 from io import BytesIO
 import base64
 
-# Load environment variables from the 'env' file
-load_dotenv('env')
+# Load environment variables from the '.env' file
+load_dotenv()  # Automatically looks for .env in the project root directory
 
 # Access the API key from the environment variables
-API_KEY = os.getenv("API_KEY")  # Get the API key value from the 'env' file
+API_KEY = os.getenv("API_KEY")  # Get the API key value from the '.env' file
 
 # If the API_KEY is not found in the env file, you can provide an error message or fallback value
 if not API_KEY:
-    st.error("API Key not found. Please check your 'env' file.")
+    st.error("API Key not found. Please check your '.env' file.")
 
 # OpenWeatherMap API details
 DEFAULT_CITY = "London"
