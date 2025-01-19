@@ -53,10 +53,11 @@ def fetch_aqi(lat, lon, api_key):
 def determine_season(temperature):
     if temperature < 15:
         return "Winter"
-    elif temperature > 25:
-        return "Summer"
+    elif 15 <= temperature <= 20 or 26 <= temperature <= 30:
+        return "Mild"  # For temperature between 15-20°C or 26-30°C
     else:
-        return "Mild"  # New condition for mild season
+        return "Summer"  # For temperature greater than 30°C
+
 
 
 # Determine AC, humidifier, dehumidifier, and air purifier actions
