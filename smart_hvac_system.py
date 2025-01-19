@@ -55,8 +55,11 @@ def determine_season(temperature):
         return "Winter"
     elif 15 <= temperature <= 20 or 26 <= temperature <= 30:
         return "Mild"  # For temperature between 15-20°C or 26-30°C
+    elif 20 <= temperature <= 26:
+        return "Energy Saving"  # For temperature between 20-26°C
     else:
         return "Summer"  # For temperature greater than 30°C
+
 
 
 
