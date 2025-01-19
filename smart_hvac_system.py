@@ -133,9 +133,12 @@ weather_source = st.radio(
 )
 
 # Path for images directory
-image_dir = "/Users/hemantchaudhary/Desktop/smart-hvac-system/images"  # Update this path as per your local or cloud directory
+image_dir = "images"  # Use relative path
 
 def get_weather_image(temp):
+# Check the image directory path
+    st.write(f"Image directory path: {image_dir}")  # This will print the path to your Streamlit app
+
     if temp < 15:
         weather_image_path = os.path.join(image_dir, "cold_weather.png")
     elif temp > 30:
