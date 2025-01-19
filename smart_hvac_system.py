@@ -136,7 +136,7 @@ weather_source = st.radio(
 image_dir = "images"  # Use relative path
 
 def get_weather_image(temp):
-# Check the image directory path
+#Check the image directory path
     st.write(f"Image directory path: {image_dir}")  # This will print the path to your Streamlit app
 
     if temp < 15:
