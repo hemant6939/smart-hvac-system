@@ -156,6 +156,7 @@ def get_weather_image(temp):
 
     try:
         weather_image = Image.open(weather_image_path)
+        weather_image = weather_image.resize((300, 300))  # Resize to 300x300 (you can adjust this size)
         return weather_image
     except FileNotFoundError:
         st.error(f"Image {weather_image_path} not found. Please check your image paths.")
