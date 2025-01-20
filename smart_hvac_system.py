@@ -3,16 +3,24 @@ import requests
 import streamlit as st
 import random
 from PIL import Image
+from dotenv import load_dotenv
+
+# Load 'env' file locally
+load_dotenv(dotenv_path='env')  # Specify the 'env' file explicitly
 
 # Check if running locally or on Streamlit Cloud and load the API key accordingly
-if "API_KEY" in os.environ:  # Local usage, load from .env
+if "API_KEY" in os.environ:  # Local usage, load from 'env' file
     API_KEY = os.getenv("API_KEY")
 else:  # Cloud usage, load from Streamlit secrets
-    API_KEY = st.secrets["general"]["API_KEY"]
+    try:
+        API_KEY = st.secrets["general"]["API_KEY"]
+    except KeyError:
+        API_KEY = None
 
 # If the API_KEY is not found, display an error
 if not API_KEY:
     st.error("API Key not found. Please check your API key configuration.")
+    st.stop()
 
 # OpenWeatherMap API details
 DEFAULT_CITY = "London"
