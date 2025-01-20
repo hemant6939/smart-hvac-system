@@ -17,9 +17,6 @@ else:  # Cloud usage, load from Streamlit secrets
     except KeyError:
         API_KEY = None
         
-# Add this line for verification
-st.write(st.secrets)  # This will display all your secrets in the Streamlit app
-
 # If the API_KEY is not found, display an error
 if not API_KEY:
     st.error("API Key not found. Please check your API key configuration.")
