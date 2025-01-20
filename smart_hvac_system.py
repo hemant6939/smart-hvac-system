@@ -1,9 +1,9 @@
-import os
+from dotenv import load_dotenv  # To load variables from the env file
+import os  # To access the environment variables
 import requests
 import streamlit as st
 import random
 from PIL import Image
-from dotenv import load_dotenv
 
 # Load 'env' file locally
 load_dotenv(dotenv_path='env')  # Specify the 'env' file explicitly
@@ -67,6 +67,7 @@ def determine_season(temperature):
     else:
         return "Summer"  # For temperature greater than 30°C
 
+
 # Determine AC, humidifier, dehumidifier, and air purifier actions
 def determine_actions(outdoor_temp, outdoor_humidity, aqi, preferred_min, preferred_max, outdoor_threshold, season, is_room_occupied):
     ac_status = "OFF"
@@ -79,17 +80,22 @@ def determine_actions(outdoor_temp, outdoor_humidity, aqi, preferred_min, prefer
         if outdoor_temp > outdoor_threshold:
             ac_status = "ON"
 
-        # Humidity logic
+        # Humidity logic (for manual input mode)
         if season == "Winter":
-            if outdoor_humidity < 30:
+            # Humidifier ON if outdoor humidity is low and temp below 15°C
+            if outdoor_humidity < 30 and outdoor_temp < 15:
                 humidifier_status = "ON"
-            elif outdoor_humidity > 50:
+            # Dehumidifier ON if outdoor humidity is high and temp below 15°C
+            elif outdoor_humidity > 50 and outdoor_temp < 15:
                 dehumidifier_status = "ON"
         elif season == "Summer":
-            if outdoor_humidity < 40:
+            # Humidifier ON if outdoor humidity is low and temp above 30°C
+            if outdoor_humidity < 40 and outdoor_temp > 30:
                 humidifier_status = "ON"
-            elif outdoor_humidity > 60:
+            # Dehumidifier ON if outdoor humidity is high and temp above 30°C
+            elif outdoor_humidity > 60 and outdoor_temp > 30:
                 dehumidifier_status = "ON"
+
 
         # Air Purifier logic
         if aqi and aqi > AQI_THRESHOLD:
@@ -98,6 +104,7 @@ def determine_actions(outdoor_temp, outdoor_humidity, aqi, preferred_min, prefer
         st.warning("Room is unoccupied. Devices are OFF to save energy.")
 
     return ac_status, humidifier_status, dehumidifier_status, air_purifier_status
+
 
 # Streamlit App
 st.title("SMART HVAC SYSTEM")
@@ -232,14 +239,15 @@ else:
     weather_image = get_weather_image(manual_temp)
 
     # Show the results based on manual input
-    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {aqi}")
+    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {manual_aqi} | Season: {season}")
     st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
 
-    # Display devices in two columns
-    col1, col2 = st.columns([2, 1])
+    # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier) for Manual Input
+    col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
 
     with col1:
         st.subheader("Devices")
+        # Display device statuses with color only for ON/OFF
         ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
         st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
 
