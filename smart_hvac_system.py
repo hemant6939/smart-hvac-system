@@ -116,10 +116,33 @@ st.subheader("Optimize comfort, energy savings, and air quality using real-time 
 
 # Sidebar for user preferences
 st.sidebar.header("User Preferences")
-preferred_min_temp = st.sidebar.slider("Preferred Minimum Indoor Temperature (°C)", 18, 30, 22, key="min_temp_slider")
-preferred_max_temp = st.sidebar.slider("Preferred Maximum Indoor Temperature (°C)", 20, 32, 26, key="max_temp_slider")
-outdoor_temp_threshold = st.sidebar.slider("Turn ON AC if Outdoor Temp is Above (°C)", 15, 35, 25, key="ac_threshold_slider")
-aqi_threshold = st.sidebar.slider("AQI Threshold for Air Purifier", 50, 300, AQI_THRESHOLD, key="aqi_threshold_slider")
+preferred_min_temp = st.sidebar.slider(
+    "Preferred Minimum Indoor Temperature (°C)", 
+    18, 30, 
+    st.session_state.get("preferred_min_temp", RECOMMENDED_MIN_TEMP),
+    key="min_temp_slider"
+)
+
+preferred_max_temp = st.sidebar.slider(
+    "Preferred Maximum Indoor Temperature (°C)", 
+    20, 32, 
+    st.session_state.get("preferred_max_temp", RECOMMENDED_MAX_TEMP),
+    key="max_temp_slider"
+)
+
+outdoor_temp_threshold = st.sidebar.slider(
+    "Turn ON AC if Outdoor Temp is Above (°C)", 
+    15, 35, 
+    st.session_state.get("outdoor_temp_threshold", RECOMMENDED_OUTDOOR_THRESHOLD),
+    key="ac_threshold_slider"
+)
+
+aqi_threshold = st.sidebar.slider(
+    "AQI Threshold for Air Purifier", 
+    50, 300, 
+    st.session_state.get("aqi_threshold", AQI_THRESHOLD),
+    key="aqi_threshold_slider"
+)
 
 # Room Occupancy Control
 st.sidebar.header("Room Occupancy")
@@ -207,71 +230,20 @@ if weather_source == "Real-time Weather Data":
             with col1:
                 st.subheader("Devices")
                 # Display device statuses with color only for ON/OFF
-                ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
-                st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
+                ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'}'>{ac_status}</span>"
+                heater_text = f"<span style='color:{'green' if heater_status == 'ON' else 'red'}'>{heater_status}</span>"
+                humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'}'>{humidifier_status}</span>"
+                dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'}'>{dehumidifier_status}</span>"
+                air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'}'>{air_purifier_status}</span>"
 
-                humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
-                st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
-
-                dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
-                st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
-
-                air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
-                st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
-
-                heater_text = f"<span style='color:{'green' if heater_status == 'ON' else 'red'};'>{heater_status}</span>"
-                st.markdown(f"**Heater**: {heater_text}", unsafe_allow_html=True)
+                st.markdown(f"AC: {ac_text}", unsafe_allow_html=True)
+                st.markdown(f"Heater: {heater_text}", unsafe_allow_html=True)
+                st.markdown(f"Humidifier: {humidifier_text}", unsafe_allow_html=True)
+                st.markdown(f"Dehumidifier: {dehumidifier_text}", unsafe_allow_html=True)
+                st.markdown(f"Air Purifier: {air_purifier_text}", unsafe_allow_html=True)
 
             with col2:
                 if weather_image:
-                    st.image(weather_image, use_container_width=True)
-                else:
-                    st.warning("Could not load weather image.")
-
-else:
-    # Manual Input for Weather Data
-    st.header("Enter Weather Data Manually")
-    manual_temp = st.number_input("Enter the outdoor temperature (°C)", min_value=-50, max_value=50, value=22)
-    manual_humidity = st.number_input("Enter the outdoor humidity (%)", min_value=0, max_value=100, value=50)
-    manual_aqi = st.number_input("Enter the AQI", min_value=0, max_value=500, value=75)  # AQI input field added
-    
-    season = determine_season(manual_temp)
-    aqi = manual_aqi  # Manual input now uses the entered AQI value
-
-    ac_status, humidifier_status, dehumidifier_status, air_purifier_status, heater_status = determine_actions(
-        manual_temp, manual_humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
-    )
-
-    # Get weather image based on the temperature
-    weather_image = get_weather_image(manual_temp)
-
-    # Show the results based on manual input
-    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {manual_aqi} | Season: {season}")
-    st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
-
-    # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier, Heater) for Manual Input
-    col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
-
-    with col1:
-        st.subheader("Devices")
-        # Display device statuses with color only for ON/OFF
-        ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
-        st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
-
-        humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
-        st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
-
-        dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
-        st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
-
-        air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
-        st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
-
-        heater_text = f"<span style='color:{'green' if heater_status == 'ON' else 'red'};'>{heater_status}</span>"
-        st.markdown(f"**Heater**: {heater_text}", unsafe_allow_html=True)
-
-    with col2:
-        if weather_image:
-            st.image(weather_image, use_container_width=True)
+                    st.image(weather_image, caption="Weather Condition", use_column_width=True)
         else:
-            st.warning("Could not load weather image.")
+            st.error("Failed to retrieve weather data. Please check the city and country input.")
