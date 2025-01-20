@@ -194,11 +194,12 @@ if weather_source == "Real-time Weather Data":
             aqi = fetch_aqi(lat, lon, API_KEY)
             season = determine_season(temp)
 
-            ac_status, humidifier_status, dehumidifier_status, air_purifier_status = determine_actions(
-                temp, humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
+    ac_status, humidifier_status, dehumidifier_status, air_purifier_status, heater_status = determine_actions(
+    manual_temp, manual_humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
             )
 
-            # Get weather image based on the temperature
+
+           # Get weather image based on the temperature
             weather_image = get_weather_image(temp)
 
             st.success(f"Temperature: {temp}°C | Humidity: {humidity}% | Season: {season} | AQI: {aqi}")
