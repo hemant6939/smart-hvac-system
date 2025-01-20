@@ -1,22 +1,18 @@
 import os
 import requests
 import streamlit as st
-from dotenv import load_dotenv
-from PIL import Image
 import random
+from PIL import Image
 
-# Load environment variables locally
-if not st.secrets:  # If running locally or the secrets are not loaded in Streamlit Cloud
-    load_dotenv()  # Automatically loads .env file in local environment
-    API_KEY = os.getenv("API_KEY")  # Get the API key from the .env file
-else:
-    # When on Streamlit Cloud, use secrets for API key
-    API_KEY = st.secrets["api"]["API_KEY"]
+# Check if running locally or on Streamlit Cloud and load the API key accordingly
+if "API_KEY" in os.environ:  # Local usage, load from .env
+    API_KEY = os.getenv("API_KEY")
+else:  # Cloud usage, load from Streamlit secrets
+    API_KEY = st.secrets["general"]["API_KEY"]
 
-# If API_KEY is not found, show an error
+# If the API_KEY is not found, display an error
 if not API_KEY:
-    st.error("API Key not found. Please check your configuration.")
-    st.stop()  # Stop further execution if API_KEY is missing
+    st.error("API Key not found. Please check your API key configuration.")
 
 # OpenWeatherMap API details
 DEFAULT_CITY = "London"
@@ -206,5 +202,50 @@ if weather_source == "Real-time Weather Data":
 
             with col2:
                 if weather_image:
-                    st.image(weather_image, caption=f"{season} Weather", use_column_width=True)
+                    st.image(weather_image, use_container_width=True)
+                else:
+                    st.warning("Could not load weather image.")
 
+else:
+    # Manual Input for Weather Data
+    st.header("Enter Weather Data Manually")
+    manual_temp = st.number_input("Enter the outdoor temperature (°C)", min_value=-50, max_value=50, value=22)
+    manual_humidity = st.number_input("Enter the outdoor humidity (%)", min_value=0, max_value=100, value=50)
+    manual_aqi = st.number_input("Enter the AQI", min_value=0, max_value=500, value=75)  # AQI input field added
+    
+    season = determine_season(manual_temp)
+    aqi = manual_aqi  # Manual input now uses the entered AQI value
+
+    ac_status, humidifier_status, dehumidifier_status, air_purifier_status = determine_actions(
+        manual_temp, manual_humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
+    )
+
+    # Get weather image based on the temperature
+    weather_image = get_weather_image(manual_temp)
+
+    # Show the results based on manual input
+    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {aqi}")
+    st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
+
+    # Display devices in two columns
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.subheader("Devices")
+        ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
+        st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
+
+        humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
+        st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
+
+        dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
+        st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
+
+        air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
+        st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
+
+    with col2:
+        if weather_image:
+            st.image(weather_image, use_container_width=True)
+        else:
+            st.warning("Could not load weather image.")
