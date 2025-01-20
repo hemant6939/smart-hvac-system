@@ -16,6 +16,9 @@ else:  # Cloud usage, load from Streamlit secrets
         API_KEY = st.secrets["general"]["API_KEY"]
     except KeyError:
         API_KEY = None
+        
+# Add this line for verification
+st.write(st.secrets)  # This will display all your secrets in the Streamlit app
 
 # If the API_KEY is not found, display an error
 if not API_KEY:
