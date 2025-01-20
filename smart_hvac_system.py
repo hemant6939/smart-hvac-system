@@ -1,19 +1,22 @@
-from dotenv import load_dotenv  # To load variables from the env file
-import os  # To access the environment variables
+import os
 import requests
 import streamlit as st
-import random
+from dotenv import load_dotenv
 from PIL import Image
+import random
 
-# Load environment variables from the '.env' file
-load_dotenv()  # Automatically looks for .env in the project root directory
+# Load environment variables locally
+if not st.secrets:  # If running locally or the secrets are not loaded in Streamlit Cloud
+    load_dotenv()  # Automatically loads .env file in local environment
+    API_KEY = os.getenv("API_KEY")  # Get the API key from the .env file
+else:
+    # When on Streamlit Cloud, use secrets for API key
+    API_KEY = st.secrets["api"]["API_KEY"]
 
-# Access the API key from the environment variables
-API_KEY = os.getenv("API_KEY")  # Get the API key value from the '.env' file
-
-# If the API_KEY is not found in the env file, you can provide an error message or fallback value
+# If API_KEY is not found, show an error
 if not API_KEY:
-    st.error("API Key not found. Please check your '.env' file.")
+    st.error("API Key not found. Please check your configuration.")
+    st.stop()  # Stop further execution if API_KEY is missing
 
 # OpenWeatherMap API details
 DEFAULT_CITY = "London"
@@ -59,9 +62,6 @@ def determine_season(temperature):
         return "Energy Saving"  # For temperature between 20-26°C
     else:
         return "Summer"  # For temperature greater than 30°C
-
-
-
 
 # Determine AC, humidifier, dehumidifier, and air purifier actions
 def determine_actions(outdoor_temp, outdoor_humidity, aqi, preferred_min, preferred_max, outdoor_threshold, season, is_room_occupied):
@@ -146,7 +146,7 @@ weather_source = st.radio(
 image_dir = "images"  # Use relative path
 
 def get_weather_image(temp):
-#Check the image directory path
+    # Check the image directory path
     st.write(f"Image directory path: {image_dir}")  # This will print the path to your Streamlit app
 
     if temp < 15:
@@ -206,51 +206,5 @@ if weather_source == "Real-time Weather Data":
 
             with col2:
                 if weather_image:
-                    st.image(weather_image, use_container_width=True)
-                else:
-                    st.warning("Could not load weather image.")
+                    st.image(weather_image, caption=f"{season} Weather", use_column_width=True)
 
-else:
-    # Manual Input for Weather Data
-    st.header("Enter Weather Data Manually")
-    manual_temp = st.number_input("Enter the outdoor temperature (°C)", min_value=-50, max_value=50, value=22)
-    manual_humidity = st.number_input("Enter the outdoor humidity (%)", min_value=0, max_value=100, value=50)
-    manual_aqi = st.number_input("Enter the AQI", min_value=0, max_value=500, value=75)  # AQI input field added
-    
-    season = determine_season(manual_temp)
-    aqi = manual_aqi  # Manual input now uses the entered AQI value
-
-    ac_status, humidifier_status, dehumidifier_status, air_purifier_status = determine_actions(
-        manual_temp, manual_humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
-    )
-
-    # Get weather image based on the temperature
-    weather_image = get_weather_image(manual_temp)
-
-    # Show the results based on manual input
-    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {manual_aqi} | Season: {season}")
-    st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
-
-    # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier) for Manual Input
-    col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
-
-    with col1:
-        st.subheader("Devices")
-        # Display device statuses with color only for ON/OFF
-        ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
-        st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
-
-        humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
-        st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
-
-        dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
-        st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
-
-        air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
-        st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
-
-    with col2:
-        if weather_image:
-            st.image(weather_image, use_container_width=True)
-        else:
-            st.warning("Could not load weather image.")
