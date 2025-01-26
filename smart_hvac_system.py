@@ -249,29 +249,32 @@ else:
     st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {manual_aqi} | Season: {season}")
     st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
 
-    # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier, Heater) for Manual Input
-    col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
+   # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier, Heater) and Weather Image in Two Columns
+col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
 
-    with col1:
-        st.subheader("Devices")
-        # Display device statuses with color only for ON/OFF
-        ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
-        st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
+with col1:
+    st.subheader("Devices")
+    # Display device statuses with color only for ON/OFF
+    ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
+    st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
+    if ac_status == "ON":
+        st.write(f"The AC is running at {temp}°C")  # Show the temperature when AC is ON
 
-        humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
-        st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
+    humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
+    st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
 
-        dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
-        st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
+    dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
+    st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
 
-        air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
-        st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
+    air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
+    st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
 
-        heater_text = f"<span style='color:{'green' if heater_status == 'ON' else 'red'};'>{heater_status}</span>"
-        st.markdown(f"**Heater**: {heater_text}", unsafe_allow_html=True)
+    heater_text = f"<span style='color:{'green' if heater_status == 'ON' else 'red'};'>{heater_status}</span>"
+    st.markdown(f"**Heater**: {heater_text}", unsafe_allow_html=True)
 
-    with col2:
-        if weather_image:
-            st.image(weather_image, use_container_width=True)
-        else:
-            st.warning("Could not load weather image.") 
+with col2:
+    if weather_image:
+        st.image(weather_image, use_container_width=True)
+    else:
+        st.warning("Could not load weather image.")
+
