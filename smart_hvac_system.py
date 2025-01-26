@@ -255,7 +255,7 @@ col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather 
 with col1:
     st.subheader("Devices")
     # Display device statuses with color only for ON/OFF
-    ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
+    ac_text = f"<span style=\"color:{'green' if ac_status == 'ON' else 'red'};\">{ac_status}</span>"
     st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
     if ac_status == "ON":
         st.write(f"The AC is running at {temp}°C")  # Show the temperature when AC is ON
