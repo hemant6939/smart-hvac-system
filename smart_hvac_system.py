@@ -116,8 +116,6 @@ st.subheader("Optimize comfort, energy savings, and air quality using real-time 
 
 # Sidebar for user preferences
 st.sidebar.header("User Preferences")
-preferred_min_temp = st.sidebar.slider("Preferred Minimum Indoor Temperature (°C)", 18, 30, 22, key="min_temp_slider")
-preferred_max_temp = st.sidebar.slider("Preferred Maximum Indoor Temperature (°C)", 20, 32, 26, key="max_temp_slider")
 outdoor_temp_threshold = st.sidebar.slider("Turn ON AC if Outdoor Temp is Above (°C)", 15, 35, 25, key="ac_threshold_slider")
 aqi_threshold = st.sidebar.slider("AQI Threshold for Air Purifier", 50, 300, AQI_THRESHOLD, key="aqi_threshold_slider")
 
