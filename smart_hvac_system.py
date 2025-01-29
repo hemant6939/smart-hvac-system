@@ -68,17 +68,22 @@ def determine_season(temperature):
         return "Summer"  # For temperature greater than 30°C
 
 
-# Determine AC, humidifier, dehumidifier, and air purifier actions
+# Determine AC, humidifier, dehumidifier, air purifier, and heater actions
 def determine_actions(outdoor_temp, outdoor_humidity, aqi, preferred_min, preferred_max, outdoor_threshold, season, is_room_occupied):
     ac_status = "OFF"
     humidifier_status = "OFF"
     dehumidifier_status = "OFF"
     air_purifier_status = "OFF"
-
+    heater_status = "OFF"  # Heater status
+    
     if is_room_occupied:  # Check if the room is occupied
         # AC logic
         if outdoor_temp > outdoor_threshold:
             ac_status = "ON"
+        
+        # Heater logic (turn ON if it's winter and temp below 15°C)
+        if season == "Winter" and outdoor_temp < 15:
+            heater_status = "ON"
 
         # Humidity logic (for manual input mode)
         if season == "Winter":
@@ -96,14 +101,13 @@ def determine_actions(outdoor_temp, outdoor_humidity, aqi, preferred_min, prefer
             elif outdoor_humidity > 60 and outdoor_temp > 30:
                 dehumidifier_status = "ON"
 
-
         # Air Purifier logic
         if aqi and aqi > AQI_THRESHOLD:
             air_purifier_status = "ON"
     else:
         st.warning("Room is unoccupied. Devices are OFF to save energy.")
 
-    return ac_status, humidifier_status, dehumidifier_status, air_purifier_status
+    return ac_status, humidifier_status, dehumidifier_status, air_purifier_status, heater_status
 
 
 # Streamlit App
@@ -187,7 +191,7 @@ if weather_source == "Real-time Weather Data":
             aqi = fetch_aqi(lat, lon, API_KEY)
             season = determine_season(temp)
 
-            ac_status, humidifier_status, dehumidifier_status, air_purifier_status = determine_actions(
+            ac_status, humidifier_status, dehumidifier_status, air_purifier_status, heater_status = determine_actions(
                 temp, humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
             )
 
@@ -197,7 +201,7 @@ if weather_source == "Real-time Weather Data":
             st.success(f"Temperature: {temp}°C | Humidity: {humidity}% | Season: {season} | AQI: {aqi}")
             st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
 
-            # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier) and Weather Image in Two Columns
+            # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier, Heater) and Weather Image in Two Columns
             col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
 
             with col1:
@@ -215,6 +219,9 @@ if weather_source == "Real-time Weather Data":
                 air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
                 st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
 
+                heater_text = f"<span style='color:{'green' if heater_status == 'ON' else 'red'};'>{heater_status}</span>"
+                st.markdown(f"**Heater**: {heater_text}", unsafe_allow_html=True)
+
             with col2:
                 if weather_image:
                     st.image(weather_image, use_container_width=True)
@@ -231,7 +238,7 @@ else:
     season = determine_season(manual_temp)
     aqi = manual_aqi  # Manual input now uses the entered AQI value
 
-    ac_status, humidifier_status, dehumidifier_status, air_purifier_status = determine_actions(
+    ac_status, humidifier_status, dehumidifier_status, air_purifier_status, heater_status = determine_actions(
         manual_temp, manual_humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
     )
 
@@ -242,7 +249,7 @@ else:
     st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {manual_aqi} | Season: {season}")
     st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
 
-    # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier) for Manual Input
+    # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier, Heater) for Manual Input
     col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
 
     with col1:
@@ -260,8 +267,11 @@ else:
         air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
         st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
 
+        heater_text = f"<span style='color:{'green' if heater_status == 'ON' else 'red'};'>{heater_status}</span>"
+        st.markdown(f"**Heater**: {heater_text}", unsafe_allow_html=True)
+
     with col2:
         if weather_image:
             st.image(weather_image, use_container_width=True)
         else:
-            st.warning("Could not load weather image.")
+            st.warning("Could not load weather image.") 
