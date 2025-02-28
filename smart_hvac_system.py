@@ -1,277 +1,222 @@
-from dotenv import load_dotenv  # To load variables from the env file
-import os  # To access the environment variables
+from dotenv import load_dotenv
+import os
 import requests
 import streamlit as st
 import random
 from PIL import Image
 
-# Load 'env' file locally
-load_dotenv(dotenv_path='env')  # Specify the 'env' file explicitly
+# Configuration
+CONFIG = {
+    "DEFAULT_CITY": "London",
+    "DEFAULT_COUNTRY": "UK",
+    "RECOMMENDED_TEMP": (20, 26),
+    "AQI_THRESHOLD": 100,
+    "IMAGE_MAPPING": {
+        "cold": "cold_weather.png",
+        "hot": "hot_weather.png",
+        "mild": "mild_weather.png",
+        "optimal": "energy_saving.png"
+    }
+}
 
-# Check if running locally or on Streamlit Cloud and load the API key accordingly
-if "API_KEY" in os.environ:  # Local usage, load from 'env' file
-    API_KEY = os.getenv("API_KEY")
-else:  # Cloud usage, load from Streamlit secrets
-    try:
-        API_KEY = st.secrets["general"]["API_KEY"]
-    except KeyError:
-        API_KEY = None
-        
-# If the API_KEY is not found, display an error
+# Initialize environment
+load_dotenv(dotenv_path='env')
+API_KEY = os.getenv("API_KEY") or st.secrets.get("general", {}).get("API_KEY")
+
 if not API_KEY:
-    st.error("API Key not found. Please check your API key configuration.")
+    st.error("❌ Missing API Key. Please configure your OpenWeatherMap API key.")
     st.stop()
 
-# OpenWeatherMap API details
-DEFAULT_CITY = "London"
-DEFAULT_COUNTRY = "UK"
-
-# Recommended settings
-RECOMMENDED_MIN_TEMP = 20  # Preferred Minimum Indoor Temperature
-RECOMMENDED_MAX_TEMP = 26  # Preferred Maximum Indoor Temperature
-RECOMMENDED_OUTDOOR_THRESHOLD = 27  # Turn ON AC if Outdoor Temp is Above
-AQI_THRESHOLD = 100  # AQI threshold to turn ON the Air Purifier
-
-# Fetch weather data from OpenWeatherMap
-def fetch_weather(city, country, api_key):
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city},{country}&appid={api_key}&units=metric"
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        temp = data["main"]["temp"]
-        humidity = data["main"]["humidity"]
-        coord = data["coord"]  # Get latitude and longitude for AQI data
-        return temp, humidity, coord["lat"], coord["lon"]
-    else:
-        return None, None, None, None
-
-# Fetch AQI data from OpenWeatherMap
-def fetch_aqi(lat, lon, api_key):
-    url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={api_key}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        aqi = data["list"][0]["main"]["aqi"]
-        return aqi
-    else:
-        return None
-
-# Determine season automatically based on temperature
-def determine_season(temperature):
-    if temperature < 15:
-        return "Winter"
-    elif 15 <= temperature <= 20 or 26 <= temperature <= 30:
-        return "Mild"  # For temperature between 15-20°C or 26-30°C
-    elif 20 <= temperature <= 26:
-        return "Energy Saving"  # For temperature between 20-26°C
-    else:
-        return "Summer"  # For temperature greater than 30°C
-
-
-# Determine AC, humidifier, dehumidifier, air purifier, and heater actions
-def determine_actions(outdoor_temp, outdoor_humidity, aqi, preferred_min, preferred_max, outdoor_threshold, season, is_room_occupied):
-    ac_status = "OFF"
-    humidifier_status = "OFF"
-    dehumidifier_status = "OFF"
-    air_purifier_status = "OFF"
-    heater_status = "OFF"  # Heater status
-    
-    if is_room_occupied:  # Check if the room is occupied
-        # AC logic
-        if outdoor_temp > outdoor_threshold:
-            ac_status = "ON"
-        
-        # Heater logic (turn ON if it's winter and temp below 15°C)
-        if season == "Winter" and outdoor_temp < 15:
-            heater_status = "ON"
-
-        # Humidity logic (for manual input mode)
-        if season == "Winter":
-            # Humidifier ON if outdoor humidity is low and temp below 15°C
-            if outdoor_humidity < 30 and outdoor_temp < 15:
-                humidifier_status = "ON"
-            # Dehumidifier ON if outdoor humidity is high and temp below 15°C
-            elif outdoor_humidity > 50 and outdoor_temp < 15:
-                dehumidifier_status = "ON"
-        elif season == "Summer":
-            # Humidifier ON if outdoor humidity is low and temp above 30°C
-            if outdoor_humidity < 40 and outdoor_temp > 30:
-                humidifier_status = "ON"
-            # Dehumidifier ON if outdoor humidity is high and temp above 30°C
-            elif outdoor_humidity > 60 and outdoor_temp > 30:
-                dehumidifier_status = "ON"
-
-        # Air Purifier logic
-        if aqi and aqi > AQI_THRESHOLD:
-            air_purifier_status = "ON"
-    else:
-        st.warning("Room is unoccupied. Devices are OFF to save energy.")
-
-    return ac_status, humidifier_status, dehumidifier_status, air_purifier_status, heater_status
-
-
-# Streamlit App
-st.title("SMART HVAC SYSTEM")
-st.subheader("Optimize comfort, energy savings, and air quality using real-time data!")
-
-# Sidebar for user preferences
-st.sidebar.header("User Preferences")
-preferred_min_temp = st.sidebar.slider("Preferred Minimum Indoor Temperature (°C)", 18, 30, 22, key="min_temp_slider")
-preferred_max_temp = st.sidebar.slider("Preferred Maximum Indoor Temperature (°C)", 20, 32, 26, key="max_temp_slider")
-outdoor_temp_threshold = st.sidebar.slider("Turn ON AC if Outdoor Temp is Above (°C)", 15, 35, 25, key="ac_threshold_slider")
-aqi_threshold = st.sidebar.slider("AQI Threshold for Air Purifier", 50, 300, AQI_THRESHOLD, key="aqi_threshold_slider")
-
-# Room Occupancy Control
-st.sidebar.header("Room Occupancy")
-simulate_occupancy = st.sidebar.checkbox("Simulate Random Occupancy", value=False)
-manual_override = st.sidebar.checkbox("Override Occupancy Manually", value=False)
-
-# When Override Occupancy is checked, uncheck Simulate Random Occupancy
-if manual_override:
-    simulate_occupancy = False
-
-# Conditionally hide checkboxes based on the state of the other checkbox
-if manual_override:
-    is_room_occupied = st.sidebar.checkbox("Room is Occupied", value=True)
-    room_status = "Room Occupied" if is_room_occupied else "Room Unoccupied"
-    st.sidebar.write(f"Override: {room_status}")
-elif simulate_occupancy:
-    manual_override = False
-    st.session_state.random_occupancy = random.choice([True, False])
-    is_room_occupied = st.session_state.random_occupancy
-else:
-    is_room_occupied = st.sidebar.checkbox("Room is Occupied", value=True)
-
-# Apply Best Settings
-if st.sidebar.button("Apply Best Settings"):
-    st.session_state["preferred_min_temp"] = RECOMMENDED_MIN_TEMP
-    st.session_state["preferred_max_temp"] = RECOMMENDED_MAX_TEMP
-    st.session_state["outdoor_temp_threshold"] = RECOMMENDED_OUTDOOR_THRESHOLD
-    st.session_state["aqi_threshold"] = AQI_THRESHOLD
-    st.sidebar.success("Best settings applied!")
-
-# Main App: Real-Time Weather or Manual Input
-st.header("Weather Source")
-weather_source = st.radio(
-    "Choose how to provide weather data:",
-    ("Real-time Weather Data", "Manual Input")
-)
-
-# Path for images directory
-image_dir = "images"  # Use relative path
-
+# Helper functions
 def get_weather_image(temp):
-    # Check the image directory path
-    st.write(f"Image directory path: {image_dir}")  # This will print the path to your Streamlit app
-
+    """Get appropriate weather image based on temperature"""
+    image_dir = "images"
+    
     if temp < 15:
-        weather_image_path = os.path.join(image_dir, "cold_weather.png")
+        image_key = "cold"
     elif temp > 30:
-        weather_image_path = os.path.join(image_dir, "hot_weather.png")
+        image_key = "hot"
     elif 15 <= temp <= 20 or 26 <= temp <= 30:
-        weather_image_path = os.path.join(image_dir, "mild_weather.png")
+        image_key = "mild"
     else:
-        weather_image_path = os.path.join(image_dir, "energy_saving.png")  # Updated to 'energy_saving.png'
+        image_key = "optimal"
 
     try:
-        weather_image = Image.open(weather_image_path)
-        weather_image = weather_image.resize((300, 300))  # Resize to 300x300 (you can adjust this size)
-        return weather_image
-    except FileNotFoundError:
-        st.error(f"Image {weather_image_path} not found. Please check your image paths.")
+        return Image.open(os.path.join(image_dir, CONFIG["IMAGE_MAPPING"][image_key])).resize((300, 300))
+    except (FileNotFoundError, KeyError) as e:
+        st.error(f"⚠️ Image not found: {str(e)}")
         return None
 
-if weather_source == "Real-time Weather Data":
-    city = st.text_input("Enter your city", DEFAULT_CITY)
-    country = st.text_input("Enter your country code (e.g., 'US', 'UK')", DEFAULT_COUNTRY)
+def handle_api_error(response, service_name):
+    """Handle API response errors"""
+    if response.status_code == 401:
+        st.error("🔑 Invalid API Key. Please check your OpenWeatherMap credentials.")
+    elif response.status_code == 404:
+        st.error("🌍 Location not found. Please check city/country names.")
+    else:
+        st.error(f"⚠️ Error fetching {service_name} data: {response.status_code}")
+    return None
 
-    if st.button("Fetch Weather and AQI"):
-        temp, humidity, lat, lon = fetch_weather(city, country, API_KEY)
-        if temp is not None:
-            aqi = fetch_aqi(lat, lon, API_KEY)
-            season = determine_season(temp)
-
-            ac_status, humidifier_status, dehumidifier_status, air_purifier_status, heater_status = determine_actions(
-                temp, humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
-            )
-
-            # Get weather image based on the temperature
-            weather_image = get_weather_image(temp)
-
-            st.success(f"Temperature: {temp}°C | Humidity: {humidity}% | Season: {season} | AQI: {aqi}")
-            st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
-
-            # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier, Heater) and Weather Image in Two Columns
-            col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
-
-            with col1:
-                st.subheader("Devices")
-                # Display device statuses with color only for ON/OFF
-                ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
-                st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
-
-                humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
-                st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
-
-                dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
-                st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
-
-                air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
-                st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
-
-                heater_text = f"<span style='color:{'green' if heater_status == 'ON' else 'red'};'>{heater_status}</span>"
-                st.markdown(f"**Heater**: {heater_text}", unsafe_allow_html=True)
-
-            with col2:
-                if weather_image:
-                    st.image(weather_image, use_container_width=True)
-                else:
-                    st.warning("Could not load weather image.")
-
-else:
-    # Manual Input for Weather Data
-    st.header("Enter Weather Data Manually")
-    manual_temp = st.number_input("Enter the outdoor temperature (°C)", min_value=-50, max_value=50, value=22)
-    manual_humidity = st.number_input("Enter the outdoor humidity (%)", min_value=0, max_value=100, value=50)
-    manual_aqi = st.number_input("Enter the AQI", min_value=0, max_value=500, value=75)  # AQI input field added
+# Data fetching functions
+def fetch_weather_data(city, country):
+    """Fetch current weather data from OpenWeatherMap"""
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city},{country}&appid={API_KEY}&units=metric"
+    response = requests.get(url)
     
-    season = determine_season(manual_temp)
-    aqi = manual_aqi  # Manual input now uses the entered AQI value
+    if response.status_code != 200:
+        return handle_api_error(response, "weather")
+        
+    data = response.json()
+    return {
+        "temp": data["main"]["temp"],
+        "humidity": data["main"]["humidity"],
+        "lat": data["coord"]["lat"],
+        "lon": data["coord"]["lon"]
+    }
 
-    ac_status, humidifier_status, dehumidifier_status, air_purifier_status, heater_status = determine_actions(
-        manual_temp, manual_humidity, aqi, preferred_min_temp, preferred_max_temp, outdoor_temp_threshold, season, is_room_occupied
+def fetch_aqi_data(lat, lon):
+    """Fetch air quality data from OpenWeatherMap"""
+    url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
+    response = requests.get(url)
+    
+    if response.status_code != 200:
+        return handle_api_error(response, "air quality")
+        
+    return response.json()["list"][0]["main"]["aqi"]
+
+# Core logic
+def determine_climate_actions(weather_data, aqi_data, user_prefs, occupancy):
+    """Determine HVAC system actions based on environmental conditions"""
+    actions = {
+        "ac": "OFF",
+        "humidifier": "OFF",
+        "dehumidifier": "OFF",
+        "air_purifier": "OFF",
+        "heater": "OFF"
+    }
+
+    if not occupancy:
+        return actions
+
+    # Temperature-based actions
+    if weather_data["temp"] > user_prefs["ac_threshold"]:
+        actions["ac"] = "ON"
+    elif weather_data["temp"] < 15:
+        actions["heater"] = "ON"
+
+    # Humidity management
+    humidity = weather_data["humidity"]
+    if humidity < 30:
+        actions["humidifier"] = "ON"
+    elif humidity > 60:
+        actions["dehumidifier"] = "ON"
+
+    # Air quality control
+    if aqi_data and aqi_data > user_prefs["aqi_threshold"]:
+        actions["air_purifier"] = "ON"
+
+    return actions
+
+# UI Components
+def create_device_status(device, status):
+    """Create styled device status display"""
+    color = "green" if status == "ON" else "red"
+    return f"<span style='color: {color}; font-weight: bold;'>{status}</span>"
+
+def show_results_panel(actions, weather_data, aqi_data, image):
+    """Display results in a organized layout"""
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("🏠 Device Status")
+        for device, status in actions.items():
+            st.markdown(
+                f"**{device.title()}:** {create_device_status(device, status)}", 
+                unsafe_allow_html=True
+            )
+            
+    with col2:
+        if image:
+            st.image(image, use_container_width=True)
+            
+    st.write(f"""
+    ### 🌡️ Environmental Conditions
+    - Temperature: {weather_data['temp']:.1f}°C
+    - Humidity: {weather_data['humidity']}%
+    - Air Quality Index: {aqi_data or 'N/A'}
+    """)
+
+# Main app
+def main():
+    st.title("🌍 Smart Climate Control System")
+    st.markdown("Optimize your indoor environment based on real-time weather conditions")
+    
+    # User preferences sidebar
+    with st.sidebar:
+        st.header("⚙️ Preferences")
+        user_prefs = {
+            "temp_range": st.slider("Ideal Temperature Range (°C)", 15, 30, (20, 26)),
+            "ac_threshold": st.slider("AC Activation Threshold (°C)", 20, 35, 27),
+            "aqi_threshold": st.slider("Air Quality Alert Level", 50, 300, 100)
+        }
+        
+        st.header("🏠 Room Status")
+        occupancy = st.radio("Occupancy:", ["Occupied", "Vacant"], index=0)
+        
+        if st.button("🔄 Apply Recommended Settings"):
+            user_prefs.update({
+                "temp_range": CONFIG["RECOMMENDED_TEMP"],
+                "ac_threshold": 27,
+                "aqi_threshold": CONFIG["AQI_THRESHOLD"]
+            })
+            st.success("✅ Best practices applied!")
+
+    # Main interface
+    weather_source = st.radio(
+        "Select input method:", 
+        ["🌐 Real-time Weather Data", "✍️ Manual Input"]
     )
 
-    # Get weather image based on the temperature
-    weather_image = get_weather_image(manual_temp)
+    if weather_source.startswith("🌐"):
+        city = st.text_input("City", CONFIG["DEFAULT_CITY"])
+        country = st.text_input("Country Code", CONFIG["DEFAULT_COUNTRY"])
+        
+        if st.button("⛅ Get Weather Data"):
+            weather_data = fetch_weather_data(city, country)
+            if weather_data:
+                aqi_data = fetch_aqi_data(weather_data["lat"], weather_data["lon"])
+                actions = determine_climate_actions(
+                    weather_data, 
+                    aqi_data,
+                    user_prefs,
+                    occupancy == "Occupied"
+                )
+                show_results_panel(
+                    actions,
+                    weather_data,
+                    aqi_data,
+                    get_weather_image(weather_data["temp"])
+                )
+    else:
+        weather_data = {
+            "temp": st.number_input("Temperature (°C)", -20, 50, 22),
+            "humidity": st.number_input("Humidity (%)", 0, 100, 50)
+        }
+        aqi_data = st.number_input("Air Quality Index", 0, 500, 50)
+        
+        if st.button("💡 Analyze Conditions"):
+            actions = determine_climate_actions(
+                weather_data, 
+                aqi_data,
+                user_prefs,
+                occupancy == "Occupied"
+            )
+            show_results_panel(
+                actions,
+                weather_data,
+                aqi_data,
+                get_weather_image(weather_data["temp"])
+            )
 
-    # Show the results based on manual input
-    st.success(f"Manual Input - Temperature: {manual_temp}°C | Humidity: {manual_humidity}% | AQI: {manual_aqi} | Season: {season}")
-    st.info(f"Room Occupied: {'Yes' if is_room_occupied else 'No'}")
-
-    # Layout: Display Devices (AC, Humidifier, Dehumidifier, Air Purifier, Heater) for Manual Input
-    col1, col2 = st.columns([2, 1])  # Two columns: AC and Devices in left, weather image in right
-
-    with col1:
-        st.subheader("Devices")
-        # Display device statuses with color only for ON/OFF
-        ac_text = f"<span style='color:{'green' if ac_status == 'ON' else 'red'};'>{ac_status}</span>"
-        st.markdown(f"**AC**: {ac_text}", unsafe_allow_html=True)
-
-        humidifier_text = f"<span style='color:{'green' if humidifier_status == 'ON' else 'red'};'>{humidifier_status}</span>"
-        st.markdown(f"**Humidifier**: {humidifier_text}", unsafe_allow_html=True)
-
-        dehumidifier_text = f"<span style='color:{'green' if dehumidifier_status == 'ON' else 'red'};'>{dehumidifier_status}</span>"
-        st.markdown(f"**Dehumidifier**: {dehumidifier_text}", unsafe_allow_html=True)
-
-        air_purifier_text = f"<span style='color:{'green' if air_purifier_status == 'ON' else 'red'};'>{air_purifier_status}</span>"
-        st.markdown(f"**Air Purifier**: {air_purifier_text}", unsafe_allow_html=True)
-
-        heater_text = f"<span style='color:{'green' if heater_status == 'ON' else 'red'};'>{heater_status}</span>"
-        st.markdown(f"**Heater**: {heater_text}", unsafe_allow_html=True)
-
-    with col2:
-        if weather_image:
-            st.image(weather_image, use_container_width=True)
-        else:
-            st.warning("Could not load weather image.") 
+if __name__ == "__main__":
+    main()
